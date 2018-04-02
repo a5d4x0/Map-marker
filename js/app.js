@@ -22,12 +22,11 @@ function initMap() {
   var defaultIcon = makeMarkerIcon('0091ff');
   var highlightedIcon = makeMarkerIcon('FFFF24');
   showIcon = makeMarkerIcon('FF0000');
-  // The following group uses the location array to create an array of markers on initialize.
+ 
   for (var i = 0; i < locations.length; i++) {
-    // Get the position from the location array.
     var position = locations[i].location;
     var title = locations[i].title;
-    // Create a marker per location, and put into markers array.
+    // 创建标记
     var marker = new google.maps.Marker({
         position: position,
         title: title,
@@ -35,11 +34,9 @@ function initMap() {
         icon: defaultIcon,
         id: i
     });
-    // Push the marker to our array of markers.
     markers.push(marker);
-    // Create an onclick event to open an infowindow at each marker.
+    // 给marker添加鼠标点击事件
     marker.addListener('click', function() {
-      //this.setIcon(showIcon);
       var self = this;
       setInterval(function(){
         self.setAnimation(null);
@@ -55,7 +52,7 @@ function initMap() {
     });
   }
   bounds = new google.maps.LatLngBounds();
-  // Extend the boundaries of the map for each marker and display the marker
+  // 设置marker在地图中的显示位置
   for (var i = 0; i < markers.length; i++) {
     markers[i].setMap(map);
     bounds.extend(markers[i].position);
@@ -64,16 +61,12 @@ function initMap() {
 }
  
 function searchMarker() {
-  // Initialize the geocoder.
   var geocoder = new google.maps.Geocoder();
-  // Get the address or place that the user entered.
   var address = document.getElementById('zoom-to-area-text').value;
-  // Make sure the address isn't blank.
   if (address == '') {
     window.alert('You must enter an area, or address.');
   } else {
-    // Geocode the address/area entered to get the center. Then, center the map
-    // on it and zoom in
+    // 设置地图的显示位置
     geocoder.geocode(
       { address: address,
         componentRestrictions: {locality: 'New York'}
@@ -90,20 +83,15 @@ function searchMarker() {
 }
 //点击标记时出现在标记上的街景弹窗
 function populateStreetWindow(marker, infowindow) {
-  // Check to make sure the infowindow is not already opened on this marker.
   if (infowindow.marker != marker) {
-    // Clear the infowindow content to give the streetview time to load.
     infowindow.setContent('');
     infowindow.marker = marker;
-    // Make sure the marker property is cleared if the infowindow is closed.
     infowindow.addListener('closeclick', function() {
       infowindow.marker = null;
     });
     var streetViewService = new google.maps.StreetViewService();
     var radius = 50;
-    // In case the status is OK, which means the pano was found, compute the
-    // position of the streetview image, then calculate the heading, then get a
-    // panorama from that and set the options
+    //显示marker位置的街景图片
     function getStreetView(data, status) {
       if (status == google.maps.StreetViewStatus.OK) {
         var nearStreetViewLocation = data.location.latLng;
@@ -124,22 +112,39 @@ function populateStreetWindow(marker, infowindow) {
           '<div>No Street View Found</div>');
       }
     }
-    // Use streetview service to get the closest streetview image within
-    // 50 meters of the markers position
+
     streetViewService.getPanoramaByLocation(marker.position, radius, getStreetView);
-    // Open the infowindow on the correct marker.
     infowindow.open(map, marker);
   }
 }
 
 //点击列表时出现在标记上的信息弹窗
 function populateInfoWindow(marker, infowindow) {
-  // Check to make sure the infowindow is not already opened on this marker.
+  infowindow.setContent('Loading...');
   if (infowindow.marker != marker) {
-    // Clear the infowindow content to give the streetview time to load.
-    infowindow.setContent('');
+    // 获取foursquare推荐三种附近餐馆的名称
+    $.ajax({
+      type: 'GET',
+      url: 'https://api.foursquare.com/v2/venues/explore',
+      data: {
+              client_id: 'yourid',//需要修改yourid
+              client_secret: 'yoursecret',//需要修改yoursecret
+              ll: marker.position.lat()+','+marker.position.lng(),
+              section: 'food',
+              v: '20180323',
+              limit: 3
+          },
+     success: function(data){
+              var items = data.response.groups[0].items;
+              infowindow.setContent('<div>' + marker.title + '</div>'
+                + '<div>Recommended Foods</div>' 
+                + '<div>' + items[0].venue.name + '</div>'
+                + '<div>' + items[1].venue.name + '</div>'
+                + '<div>' + items[2].venue.name + '</div>');
+        }
+    });
+    
     infowindow.marker = marker;
-    // Make sure the marker property is cleared if the infowindow is closed.
     infowindow.addListener('closeclick', function() {
       infowindow.marker = null;
     });
@@ -149,7 +154,7 @@ function populateInfoWindow(marker, infowindow) {
     infowindow.open(map, marker);
   }
 }
-
+//设置marker的图标颜色
 function makeMarkerIcon(markerColor) {
     var markerImage = new google.maps.MarkerImage(
       'http://chart.googleapis.com/chart?chst=d_map_spin&chld=1.15|0|'+ markerColor +
@@ -171,6 +176,7 @@ var ViewModel = function() {
         self.markerList.push(markerItem);
         self.valueList.push(markerItem);
     });
+    //marker的筛选功能
     this.listFilter = function() {
       self.valueList([]);
       self.valueList.push(this.selectList()[0]);
@@ -183,6 +189,7 @@ var ViewModel = function() {
         }
       }
     }
+    //marker列表的重置功能
     this.listReset = function() {
       self.valueList([]);
       locations.forEach(function(markerItem) {
@@ -193,6 +200,7 @@ var ViewModel = function() {
         bounds.extend(markers[i].position);
       }
     }
+    //marker列表的显示功能
     this.listShow = function(name) {
       for (var i = 0; i < markers.length; i++) {
         if(markers[i].title == name.title) {
