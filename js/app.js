@@ -142,6 +142,10 @@ function populateInfoWindow(marker, infowindow) {
                 + '<div>' + items[1].venue.name + '</div>'
                 + '<div>' + items[2].venue.name + '</div>');
         }
+    })
+    .fail(function() {  
+      infowindow.setContent('<div>Not found Foods</div>') 
+      console.log('加载FourSquare失败！');
     });
     
     infowindow.marker = marker;
@@ -164,6 +168,10 @@ function makeMarkerIcon(markerColor) {
       new google.maps.Point(10, 34),
       new google.maps.Size(21,34));
     return markerImage;
+}
+
+var mapErrorHandler = function() {
+  alert("谷歌地图加载失败！");
 }
 
 var ViewModel = function() {
